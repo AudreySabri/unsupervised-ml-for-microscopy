@@ -142,7 +142,7 @@ def crop_image(image):
     cropped_image = cropped_array*image
     return cropped_image
 
-def intenstiy_clipping(image, clip, window_size):
+def intensity_clipping(image, clip, window_size):
     max_allowed = np.quantile(image, q=clip)
     image = np.clip(image, a_min=0, a_max=max_allowed)
     background = median_filter(image, window_size)
