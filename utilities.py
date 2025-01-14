@@ -31,7 +31,7 @@ def get_training_data(image, window_size):
     img_coords[:,[1,0]] = img_coords[:,[0,1]]
     crops = aoi.utils.get_imgstack(image, img_coords, window_size)
     for i in range(len(crops[0])):
-        clipped_image = intenstiy_clipping(crops[0][i], 0.999, window_size)
+        clipped_image = intensity_clipping(crops[0][i], 0.999, window_size)
         cropped_image = crop_image(clipped_image)
         training_data.append(cropped_image)
         training_coordinates.append(crops[1][i])
