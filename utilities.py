@@ -1,15 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import cv2 as cv
 import os
 from tqdm import tqdm
 
 import atomai as aoi
-import torch
-import random
 
-from scipy import ndimage
-from scipy.ndimage.filters import maximum_filter
+from scipy.ndimage.filters import maximum_filter, median_filter
 from scipy.ndimage.morphology import generate_binary_structure, binary_erosion
 from scipy.spatial.distance import cdist
 
@@ -26,27 +22,24 @@ def load_images_from_folder(folder_path):
         images.append(normalizedData)
     return images
 
-def get_training_data(images, window_size):
-    window_crops = []
-    for i in range(len(images)):
-        img_coords = get_coordinates(images[i])
-        img_coords[:,[1,0]] = img_coords[:,[0,1]]
-        crops = aoi.utils.get_imgstack(images[i], window_size)
-        for j in range(len(crops[0])):
-            window_crops.append([i,crops[0][j],crops[1][j]])
-
+def get_training_data(image, window_size):
 
     training_data = []
     training_coordinates = []
-
-    for i in range(len(window_crops)):
-        if window_crops[i][0] == 1:
-            training_data.append(window_crops[i][1])
-            training_coordinates.append(window_crops[i][2])
+    
+    img_coords = get_coordinates(image)
+    img_coords[:,[1,0]] = img_coords[:,[0,1]]
+    crops = aoi.utils.get_imgstack(image, img_coords, window_size)
+    for i in range(len(crops[0])):
+        clipped_image = intenstiy_clipping(crops[0][i], 0.999, window_size)
+        cropped_image = crop_image(clipped_image)
+        training_data.append(cropped_image)
+        training_coordinates.append(crops[1][i])
+        
     training_data = np.array(training_data)
     training_coordinates = np.array(training_coordinates)
-            
-    return(window_crops, training_data, training_coordinates)
+
+    return(training_data, training_coordinates)
 
 def get_coordinates(image):
     threshData = cv.adaptiveThreshold(image, 110, cv.ADAPTIVE_THRESH_GAUSSIAN_C,
@@ -56,7 +49,7 @@ def get_coordinates(image):
     coordinates = []
     match_shapes = []
     circle_mask = np.zeros(image.shape)
-    circle = cv.circle(circle_mask,(150,150),3,255,2)
+    circle = cv.circle(circle_mask,(150,150),6,255,2)
     
     for i, count in enumerate(contours):
     
@@ -67,10 +60,10 @@ def get_coordinates(image):
         ret = cv.matchShapes(circle,count,1,0.0)
         match_shapes.append(ret)
     
-        if extent<0.19:
+        if extent<0.3:
             match_shapes[i] = 0
         
-        if extent > 0.19:  #Filters out edges
+        if extent > 0.3:  #Filters out edges
             mask = np.zeros(image.shape)
             cv.drawContours(mask, [count], -1, (0, 255, 0), 1)
             kpCnt = len(count)
@@ -87,13 +80,13 @@ def get_coordinates(image):
     match_shapes = np.asarray(match_shapes)
     
     for i, shape in enumerate(match_shapes):
-        if shape > 1:
+        if shape > 1.1:
             coordinates = coordinates[coordinates[:,0] != i]
     
     coordinates = coordinates[:,1:]
     
     for i, count in enumerate(contours):
-        if match_shapes[i] > 1:
+        if match_shapes[i] > 1.1:
             dimer_mask = np.zeros(image.shape)
             cv.drawContours(dimer_mask, [contours[i]], -1, 1, -1)
             region_of_interest = image * dimer_mask
@@ -137,25 +130,24 @@ def get_coordinates(image):
     
     return(coordinates)
 
-def crop_atoms(image):
-    img_coords = get_coordinates(image)
-    lowpass = ndimage.gaussian_filter(image, 1)
-    gauss_highpass = image - lowpass
-    binary_mask = gauss_highpass>200
-    filled_mask = ndimage.binary_fill_holes(binary_mask).astype(int)
-    cropped_data = filled_mask*data
-    
+def crop_image(image):
     center = np.array([image.shape[0]//2, image.shape[1]//2])
-    distances_from_center = np.linalg.norm(img_coords - center, axis=1)
-    closest_idx = np.argmin(distances_from_center)
-    closest_coordinate = img_coords[closest_idx]
     mask = np.zeros((32, 32))
     y, x = np.ogrid[:32, :32]
-    distance_from_point = np.sqrt((x - closest_coordinate[0])**2 + (y - closest_coordinate[1])**2)
-    circle_mask = distance_from_point <= 8.5
+    distance_from_point = np.sqrt((x - center[0])**2 + (y - center[1])**2)
+    circle_mask = distance_from_point <= 5
     mask[circle_mask] = 1
     cropped_array = np.zeros((32, 32))
     cropped_array[circle_mask] = mask[circle_mask] 
-    cropped_image = cropped_array * image
+    cropped_image = cropped_array*image
+    return cropped_image
 
-    return(cropped_image)
+def intenstiy_clipping(image, clip, window_size):
+    max_allowed = np.quantile(image, q=clip)
+    image = np.clip(image, a_min=0, a_max=max_allowed)
+    background = median_filter(image, window_size)
+    clean_image = image - background
+    clean_image[clean_image < 0] = 0
+    normalized_image = (clean_image - clean_image.min()) / (clean_image.max() - clean_image.min())
+    
+    return clean_image
