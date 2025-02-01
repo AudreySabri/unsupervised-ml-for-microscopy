@@ -1,1 +1,1 @@
-# MEP : Unsupervised Characterizations of Single Atoms in STM Images
+# MEP : Unsupervised Characterization of Single Atoms in STM Images
