@@ -131,15 +131,14 @@ def get_coordinates(image):
     return(coordinates)
 
 def crop_image(image):
-    center = np.array([image.shape[0]//2, image.shape[1]//2])
-    mask = np.zeros((32, 32))
-    y, x = np.ogrid[:32, :32]
-    distance_from_point = np.sqrt((x - center[0])**2 + (y - center[1])**2)
-    circle_mask = distance_from_point <= 5
+    window_size = (image.shape[0], image.shape[1])
+    center = np.array([window_size[0]//2, window_size[1]//2])
+    mask = np.zeros(([window_size[0], window_size[1]))
+    y, x = np.ogrid[:window_size[0], :window_size[1]]
+    radius = np.sqrt((x - center[0])**2 + (y - center[1])**2)
+    circle_mask = radius <= 5
     mask[circle_mask] = 1
-    cropped_array = np.zeros((32, 32))
-    cropped_array[circle_mask] = mask[circle_mask] 
-    cropped_image = cropped_array*image
+    cropped_image = mask*image
     return cropped_image
 
 def intensity_clipping(image, clip, window_size):
