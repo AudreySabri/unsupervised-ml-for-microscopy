@@ -52,18 +52,21 @@ def get_coordinates(image):
     circle = cv.circle(circle_mask,(150,150),6,255,2)
     
     for i, count in enumerate(contours):
-    
+
+        # Compare contours to perfect circle to depict a single atom
         area = cv.contourArea(count)
         x,y,w,h = cv.boundingRect(count)
         rect_area = w*h
         extent = float(area)/rect_area
         ret = cv.matchShapes(circle,count,1,0.0)
         match_shapes.append(ret)
-    
+
+        # Filter out edges 
         if extent<0.3:
             match_shapes[i] = 0
         
-        if extent > 0.3:  #Filters out edges
+        # Take center of mass of each contour as coordinate site
+        if extent > 0.3:  
             mask = np.zeros(image.shape)
             cv.drawContours(mask, [count], -1, (0, 255, 0), 1)
             kpCnt = len(count)
@@ -80,12 +83,14 @@ def get_coordinates(image):
     match_shapes = np.asarray(match_shapes)
     
     for i, shape in enumerate(match_shapes):
+        # Remove dimer/trimer coordinate sites that do not resemble a perfect circle
         if shape > 1.1:
             coordinates = coordinates[coordinates[:,0] != i]
     
     coordinates = coordinates[:,1:]
     
     for i, count in enumerate(contours):
+        # Detect peak maxima in dimer/trimer contours to split them into single atom coordinate sites
         if match_shapes[i] > 1.1:
             dimer_mask = np.zeros(image.shape)
             cv.drawContours(dimer_mask, [contours[i]], -1, 1, -1)
@@ -96,6 +101,7 @@ def get_coordinates(image):
             eroded_background = binary_erosion(background, structure = neighborhood, border_value =1)
             detected_peaks = local_max ^ eroded_background
             if np.where(detected_peaks == True)[0].shape[0] > 1:
+                # Filter faulty peaks
                 peak_coords_list = []
                 for j in range(np.where(detected_peaks == True)[0].shape[0]):
                     peak_coords = np.array([[np.where(detected_peaks == True)[1][j],
@@ -124,6 +130,7 @@ def get_coordinates(image):
     
                 coordinates = np.concatenate((coordinates, peak_coords_list), axis=0)
             else:
+                # Include any atom site that was missed
                 single_peak_coords = np.array([np.where(detected_peaks == True)[1],
                                              np.where(detected_peaks == True)[0]]).reshape(1,2)
                 coordinates = np.concatenate((coordinates, single_peak_coords), axis=0)
