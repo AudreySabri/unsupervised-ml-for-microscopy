@@ -133,7 +133,7 @@ def get_coordinates(image):
 def crop_image(image):
     window_size = (image.shape[0], image.shape[1])
     center = np.array([window_size[0]//2, window_size[1]//2])
-    mask = np.zeros(([window_size[0], window_size[1]))
+    mask = np.zeros((window_size[0], window_size[1]))
     y, x = np.ogrid[:window_size[0], :window_size[1]]
     radius = np.sqrt((x - center[0])**2 + (y - center[1])**2)
     circle_mask = radius <= 5
