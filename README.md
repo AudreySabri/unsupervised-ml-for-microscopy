@@ -1,3 +1,5 @@
-# MEP : Machine Learning Accelerated Characterization of Single Adatoms Via STM Imaging
+# Machine Learning Accelerated Characterization of Single Adatoms Via STM Imaging
 
 We demonstrate the ability of computer vision methods and unsupervised machine learning models to analyze atom-scale images acquired by scanning tunneling microscopy (STM). The imaged system of interest consists of Fe and Ti atoms adsorbed on bilayer MgO islands grown on an Ag substrate, a system studied for its quantum magnetic properties. The purpose of this analysis is to detect and classify each atom site, which includes Ti atoms, Fe atoms, defects on the surface of the sample, and unknown contaminants. Our method identifies Fe and Ti atoms from the rest to aid laboratory researchers during single-atom probing tasks. Each acquired STM image is processed with computer vision libraries to locate each atom site and to build a dataset of atom crops that highlight their features. Atom site classification and characterization tasks are performed using Gaussian mixture models (GMM), principal component analyses (PCA), and density-based clustering to classify each atom site by species and quantify structural differences and similarities between them.
+
+![Detailed pipeline](https://github.com/user-attachments/assets/57164d38-5e0e-4d5d-b921-10b1fdcd002f)
